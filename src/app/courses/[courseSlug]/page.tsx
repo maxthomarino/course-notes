@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { getCourse } from "@/content/courses";
+import { getResourcesForCourse } from "@/content/further-resources";
 import { discoverLectures } from "@/lib/lectures";
 import Breadcrumbs from "@/components/Breadcrumbs";
 import LectureList from "@/components/LectureList";
@@ -23,6 +24,12 @@ export default async function CoursePage({ params }: Props) {
   if (!course) notFound();
 
   const { lectures, r2Available } = await discoverLectures(courseSlug);
+
+  const courseResources = getResourcesForCourse(courseSlug);
+  const resourceLinks: Record<string, string> = {};
+  for (const r of courseResources) {
+    resourceLinks[r.lectureId] = `/courses/${courseSlug}/further-resources/${r.lectureId}`;
+  }
 
   return (
     <>
@@ -49,6 +56,7 @@ export default async function CoursePage({ params }: Props) {
         courseSlug={courseSlug}
         lectures={lectures}
         r2Available={r2Available}
+        resourceLinks={resourceLinks}
       />
     </>
   );

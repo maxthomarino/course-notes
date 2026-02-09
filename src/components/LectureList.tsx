@@ -18,12 +18,14 @@ interface LectureListProps {
   courseSlug: string;
   lectures: Lecture[];
   r2Available: boolean;
+  resourceLinks?: Record<string, string>;
 }
 
 export default function LectureList({
   courseSlug,
   lectures,
   r2Available,
+  resourceLinks,
 }: LectureListProps) {
   const [query, setQuery] = useState("");
 
@@ -65,6 +67,7 @@ export default function LectureList({
               fileName={lec.fileName}
               title={lec.title}
               label={lec.label}
+              resourcesHref={resourceLinks?.[`lecture${lec.sortKey}`]}
             />
           ))}
         </div>

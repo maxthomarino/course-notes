@@ -15,6 +15,14 @@ export const courses: CourseDefinition[] = [
     instructors: ["Lecturer A", "Lecturer B"],
     prefix: "software-system-design",
   },
+  {
+    slug: "operating-systems-and-computer-networking",
+    title: "Operating Systems and Computer Networking",
+    description:
+      "An introduction to operating system concepts, CPU scheduling, memory management, I/O devices, and computer networking fundamentals.",
+    instructors: ["Lecturer A"],
+    prefix: "operating-systems-and-computer-networking",
+  },
 ];
 
 export function getCourse(slug: string): CourseDefinition | undefined {

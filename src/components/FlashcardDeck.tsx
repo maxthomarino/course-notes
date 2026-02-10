@@ -138,7 +138,7 @@ export default function FlashcardDeck({
       if (sessionComplete || !mounted) return;
       if (e.key === " " || e.key === "Enter") {
         e.preventDefault();
-        if (!flipped) setFlipped(true);
+        setFlipped((f) => !f);
       }
       if (flipped) {
         if (e.key === "1") handleRate(Rating.Again);
@@ -213,7 +213,7 @@ export default function FlashcardDeck({
 
       {/* Card */}
       <div
-        onClick={() => !flipped && setFlipped(true)}
+        onClick={() => setFlipped((f) => !f)}
         className="relative min-h-[200px] border border-gray-200 rounded-lg bg-white shadow-sm cursor-pointer select-none"
         style={{ perspective: "1000px" }}
       >

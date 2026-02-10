@@ -2,8 +2,9 @@ export type { Flashcard, FlashcardTopic, LectureFlashcards } from "./types";
 
 import type { LectureFlashcards } from "./types";
 import ssdLecture1 from "./software-system-design/lecture1";
+import ssdLecture2 from "./software-system-design/lecture2";
 
-const allFlashcards: LectureFlashcards[] = [ssdLecture1];
+const allFlashcards: LectureFlashcards[] = [ssdLecture1, ssdLecture2];
 
 export function getLectureFlashcards(
   courseSlug: string,

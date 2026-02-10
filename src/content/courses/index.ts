@@ -23,6 +23,13 @@ export const courses: CourseDefinition[] = [
     instructors: ["Lecturer A"],
     prefix: "operating-systems-and-computer-networking",
   },
+  {
+    slug: "personal",
+    title: "Personal",
+    description: "Personal notes and flashcards.",
+    instructors: [],
+    prefix: "personal",
+  },
 ];
 
 export function getCourse(slug: string): CourseDefinition | undefined {

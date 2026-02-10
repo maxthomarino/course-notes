@@ -48,12 +48,14 @@ export default function LectureRow({
             Flashcards
           </Link>
         )}
-        <Link
-          href={`/courses/${courseSlug}/lectures/${encodeURIComponent(fileName)}`}
-          className="shrink-0 inline-flex items-center px-3 py-1.5 text-xs font-medium text-blue-700 bg-blue-50 rounded-md hover:bg-blue-100 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1"
-        >
-          View PDF
-        </Link>
+        {fileName && (
+          <Link
+            href={`/courses/${courseSlug}/lectures/${encodeURIComponent(fileName)}`}
+            className="shrink-0 inline-flex items-center px-3 py-1.5 text-xs font-medium text-blue-700 bg-blue-50 rounded-md hover:bg-blue-100 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1"
+          >
+            View PDF
+          </Link>
+        )}
       </div>
     </div>
   );

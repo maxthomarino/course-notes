@@ -38,6 +38,29 @@ export default async function CoursePage({ params }: Props) {
     flashcardLinks[f.lectureId] = `/courses/${courseSlug}/flashcards/${f.lectureId}`;
   }
 
+  // Inject synthetic rows for flashcard-only decks (no matching PDF)
+  const existingSortKeys = new Set(lectures.map((l) => l.sortKey));
+  for (const f of courseFlashcards) {
+    const match = f.lectureId.match(/^lecture(\d+)$/);
+    const sortKey = match ? parseInt(match[1], 10) : 0;
+    if (!existingSortKeys.has(sortKey)) {
+      lectures.push({
+        id: f.lectureId,
+        fileName: "",
+        title: f.lectureTitle,
+        label: null,
+        sortKey,
+        hasR2: false,
+        hasFallback: false,
+      });
+      existingSortKeys.add(sortKey);
+    }
+  }
+  lectures.sort((a, b) => {
+    if (a.sortKey !== b.sortKey) return a.sortKey - b.sortKey;
+    return a.title.localeCompare(b.title);
+  });
+
   return (
     <>
       <Breadcrumbs

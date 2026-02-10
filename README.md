@@ -15,11 +15,19 @@ src/
 │       │   └── [courseSlug]/lectures/  # GET /api/courses/:slug/lectures
 │       └── pdf/[courseSlug]/[fileName]/ # GET /api/pdf/:slug/:file
 ├── components/                  # UI components
-├── content/courses/             # Course registry (config-driven)
+│   └── FlashcardDeck.tsx        # Client component: flashcard study session
+├── content/
+│   ├── courses/                 # Course registry (config-driven)
+│   ├── further-resources/       # Per-lecture reading lists
+│   └── flashcards/              # Per-lecture flashcard decks
+│       ├── types.ts             # Flashcard, FlashcardTopic, LectureFlashcards
+│       ├── index.ts             # Registry + lookup functions
+│       └── <course>/<lecture>.ts # Card data files
 ├── lib/                         # Data layer
 │   ├── r2.ts                    # Cloudflare R2 S3 client
 │   ├── lectures.ts              # Lecture discovery (R2 + local merge)
 │   ├── filename-parser.ts       # Derive titles/labels from filenames
+│   ├── srs.ts                   # SM-2 spaced repetition algorithm
 │   ├── access-policy.ts         # Auth stub (future NextAuth)
 │   └── events.ts                # Event emitter stubs (future Resend)
 ├── middleware.ts                 # Auth-ready middleware hook
@@ -105,6 +113,49 @@ All PDF links go through `/api/pdf/<courseSlug>/<fileName>`:
 
 Supports `Range` headers (HTTP 206) for efficient in-browser PDF rendering.
 
+## Flashcard System
+
+Per-lecture flashcards with Anki-style spaced repetition (SM-2 algorithm). Card content is defined server-side; review progress is stored in the browser's `localStorage`.
+
+### Adding Flashcards for a Lecture
+
+1. Create a data file, e.g. `src/content/flashcards/my-course/lecture2.ts`
+2. Export a `LectureFlashcards` object (see `src/content/flashcards/types.ts` for the interface):
+
+   ```typescript
+   import type { LectureFlashcards } from "../types";
+   const lecture2: LectureFlashcards = {
+     courseSlug: "my-course",
+     lectureId: "lecture2",          // must match lecture sortKey format
+     lectureTitle: "My Lecture Title",
+     topics: [{
+       name: "Topic Name",
+       cards: [
+         { id: "q1", front: "Question?", back: "Answer." },
+         { id: "q2", front: "Another?", back: "Response.", hint: "Optional hint" },
+       ],
+     }],
+   };
+   export default lecture2;
+   ```
+
+3. Register it in `src/content/flashcards/index.ts` — import and add to `allFlashcards`
+
+A green "Flashcards" button will automatically appear on the lecture row in the course page.
+
+### Spaced Repetition (SM-2)
+
+The system implements the SM-2 algorithm. Four rating buttons are provided:
+
+| Button | Keyboard | Effect |
+|--------|----------|--------|
+| Again  | `1`      | Card failed — re-queued immediately, interval reset |
+| Hard   | `2`      | Difficult recall — short interval (1 day) |
+| Good   | `3`      | Correct recall — normal interval progression (1d → 6d → EF×interval) |
+| Easy   | `4`      | Effortless recall — longer interval, increased ease factor |
+
+`Space` / `Enter` flips the card. All progress is stored in `localStorage` with keys: `flashcards:{courseSlug}:{lectureId}:{cardId}`. No data is sent to any server.
+
 ## Vercel Deployment
 
 1. Push the repo to GitHub
@@ -121,3 +172,4 @@ npm test
 - **filename-parser.test.ts** — title/label extraction from various filename patterns
 - **lectures.test.ts** — R2 + local merge logic, deduplication, sorting, fallback behavior
 - **pdf-api.test.ts** — PDF route handler: headers, Range support, 404, path traversal rejection
+- **srs.test.ts** — SM-2 spaced repetition: interval progression, ease factor bounds, due date calculation

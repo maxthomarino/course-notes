@@ -6,6 +6,7 @@ interface LectureRowProps {
   title: string;
   label: string | null;
   resourcesHref?: string;
+  flashcardsHref?: string;
 }
 
 export default function LectureRow({
@@ -14,6 +15,7 @@ export default function LectureRow({
   title,
   label,
   resourcesHref,
+  flashcardsHref,
 }: LectureRowProps) {
   return (
     <div className="flex items-center justify-between py-3 px-4 border border-gray-100 rounded-lg hover:border-gray-200 hover:bg-gray-50/50 transition-all group">
@@ -36,6 +38,14 @@ export default function LectureRow({
             className="shrink-0 inline-flex items-center px-3 py-1.5 text-xs font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-1"
           >
             Resources
+          </Link>
+        )}
+        {flashcardsHref && (
+          <Link
+            href={flashcardsHref}
+            className="shrink-0 inline-flex items-center px-3 py-1.5 text-xs font-medium text-green-700 bg-green-50 rounded-md hover:bg-green-100 transition-colors focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-1"
+          >
+            Flashcards
           </Link>
         )}
         <Link

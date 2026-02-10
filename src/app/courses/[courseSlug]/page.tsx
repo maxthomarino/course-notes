@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { getCourse } from "@/content/courses";
 import { getResourcesForCourse } from "@/content/further-resources";
+import { getFlashcardsForCourse } from "@/content/flashcards";
 import { discoverLectures } from "@/lib/lectures";
 import Breadcrumbs from "@/components/Breadcrumbs";
 import LectureList from "@/components/LectureList";
@@ -31,6 +32,12 @@ export default async function CoursePage({ params }: Props) {
     resourceLinks[r.lectureId] = `/courses/${courseSlug}/further-resources/${r.lectureId}`;
   }
 
+  const courseFlashcards = getFlashcardsForCourse(courseSlug);
+  const flashcardLinks: Record<string, string> = {};
+  for (const f of courseFlashcards) {
+    flashcardLinks[f.lectureId] = `/courses/${courseSlug}/flashcards/${f.lectureId}`;
+  }
+
   return (
     <>
       <Breadcrumbs
@@ -57,6 +64,7 @@ export default async function CoursePage({ params }: Props) {
         lectures={lectures}
         r2Available={r2Available}
         resourceLinks={resourceLinks}
+        flashcardLinks={flashcardLinks}
       />
     </>
   );

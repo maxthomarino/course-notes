@@ -25,6 +25,15 @@ interface FlashcardDeckProps {
   cards: CardWithTopic[];
 }
 
+const BATCH_SIZE = 6;
+
+const PASS_THRESHOLD: Record<Rating, number> = {
+  [Rating.Again]: Infinity,
+  [Rating.Hard]: 3,
+  [Rating.Good]: 2,
+  [Rating.Easy]: 1,
+};
+
 const RATING_BUTTONS = [
   {
     rating: Rating.Again,
@@ -56,6 +65,28 @@ const RATING_BUTTONS = [
   },
 ] as const;
 
+function buildOrderedCards(
+  cards: CardWithTopic[],
+  states: Map<string, CardState>,
+): CardWithTopic[] {
+  const due: CardWithTopic[] = [];
+  const newCards: CardWithTopic[] = [];
+  const upcoming: CardWithTopic[] = [];
+
+  for (const card of cards) {
+    const s = states.get(card.id)!;
+    if (s.repetitions === 0) {
+      newCards.push(card);
+    } else if (isDue(s)) {
+      due.push(card);
+    } else {
+      upcoming.push(card);
+    }
+  }
+
+  return [...due, ...newCards, ...upcoming];
+}
+
 export default function FlashcardDeck({
   courseSlug,
   lectureId,
@@ -64,8 +95,12 @@ export default function FlashcardDeck({
   const [cardStates, setCardStates] = useState<Map<string, CardState>>(
     new Map(),
   );
-  const [queue, setQueue] = useState<CardWithTopic[]>([]);
-  const [currentIndex, setCurrentIndex] = useState(0);
+  const [batch, setBatch] = useState<CardWithTopic[]>([]);
+  const [remaining, setRemaining] = useState<CardWithTopic[]>([]);
+  const [batchPassCounts, setBatchPassCounts] = useState<Map<string, number>>(
+    new Map(),
+  );
+  const [graduated, setGraduated] = useState(0);
   const [flipped, setFlipped] = useState(false);
   const [sessionComplete, setSessionComplete] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -78,32 +113,32 @@ export default function FlashcardDeck({
     }
     setCardStates(states);
 
-    // Build queue: due cards first, then new cards, then not-yet-due
-    const due: CardWithTopic[] = [];
-    const newCards: CardWithTopic[] = [];
-    const upcoming: CardWithTopic[] = [];
-
-    for (const card of cards) {
-      const s = states.get(card.id)!;
-      if (s.repetitions === 0) {
-        newCards.push(card);
-      } else if (isDue(s)) {
-        due.push(card);
-      } else {
-        upcoming.push(card);
-      }
-    }
-
-    const ordered = [...due, ...newCards, ...upcoming];
-    setQueue(ordered);
+    const ordered = buildOrderedCards(cards, states);
+    setBatch(ordered.slice(0, BATCH_SIZE));
+    setRemaining(ordered.slice(BATCH_SIZE));
+    setBatchPassCounts(new Map());
+    setGraduated(0);
     setSessionComplete(ordered.length === 0);
     setMounted(true);
   }, [cards, courseSlug, lectureId]);
 
+  // Auto-refill batch when empty
+  useEffect(() => {
+    if (batch.length === 0 && mounted && !sessionComplete) {
+      if (remaining.length > 0) {
+        setBatch(remaining.slice(0, BATCH_SIZE));
+        setRemaining(remaining.slice(BATCH_SIZE));
+        setBatchPassCounts(new Map());
+      } else {
+        setSessionComplete(true);
+      }
+    }
+  }, [batch.length, remaining, mounted, sessionComplete]);
+
   // Rate handler
   const handleRate = useCallback(
     (rating: Rating) => {
-      const card = queue[currentIndex];
+      const card = batch[0];
       if (!card) return;
 
       const current = cardStates.get(card.id);
@@ -115,21 +150,34 @@ export default function FlashcardDeck({
       saveCardState(courseSlug, lectureId, card.id, next);
       setCardStates((prev) => new Map(prev).set(card.id, next));
 
-      // If Again, re-queue the card at the end
-      if (rating === Rating.Again) {
-        setQueue((prev) => [...prev, card]);
-      }
-
-      // Advance
       setFlipped(false);
-      const isLastCard = currentIndex + 1 >= queue.length;
-      if (isLastCard && rating !== Rating.Again) {
-        setSessionComplete(true);
+
+      if (rating === Rating.Again) {
+        // Reset pass count, move to end of batch
+        setBatchPassCounts((prev) => {
+          const m = new Map(prev);
+          m.set(card.id, 0);
+          return m;
+        });
+        setBatch((prev) => [...prev.slice(1), prev[0]]);
       } else {
-        setCurrentIndex((i) => i + 1);
+        const newCount = (batchPassCounts.get(card.id) ?? 0) + 1;
+        if (newCount >= PASS_THRESHOLD[rating]) {
+          // Graduate: remove from batch
+          setBatch((prev) => prev.slice(1));
+          setGraduated((g) => g + 1);
+        } else {
+          // Not yet graduated: update count, move to end of batch
+          setBatchPassCounts((prev) => {
+            const m = new Map(prev);
+            m.set(card.id, newCount);
+            return m;
+          });
+          setBatch((prev) => [...prev.slice(1), prev[0]]);
+        }
       }
     },
-    [queue, currentIndex, cardStates, courseSlug, lectureId],
+    [batch, batchPassCounts, cardStates, courseSlug, lectureId],
   );
 
   // Keyboard support
@@ -180,12 +228,22 @@ export default function FlashcardDeck({
         </p>
         <button
           onClick={() => {
-            setCurrentIndex(0);
             setFlipped(false);
             setSessionComplete(false);
-            // Rebuild queue from current states
-            const dueNow = cards.filter((c) => isDue(cardStates.get(c.id)!));
-            setQueue(dueNow.length > 0 ? dueNow : cards);
+            setGraduated(0);
+            setBatchPassCounts(new Map());
+            // Rebuild from current states
+            const ordered = buildOrderedCards(cards, cardStates);
+            setBatch(
+              ordered.length > 0
+                ? ordered.slice(0, BATCH_SIZE)
+                : cards.slice(0, BATCH_SIZE),
+            );
+            setRemaining(
+              ordered.length > 0
+                ? ordered.slice(BATCH_SIZE)
+                : cards.slice(BATCH_SIZE),
+            );
           }}
           className="mt-6 inline-flex items-center px-4 py-2 text-sm font-medium text-blue-700 bg-blue-50 rounded-md hover:bg-blue-100 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1"
         >
@@ -195,20 +253,23 @@ export default function FlashcardDeck({
     );
   }
 
-  const card = queue[currentIndex];
+  const card = batch[0];
   if (!card) return null;
 
   const state = cardStates.get(card.id);
   if (!state) return null;
 
-  const progress = `${currentIndex + 1} / ${queue.length}`;
+  const progress = `${graduated} / ${cards.length} complete`;
+  const batchInfo = `${batch.length} left in batch`;
 
   return (
     <div className="max-w-2xl mx-auto">
       {/* Progress */}
       <div className="flex items-center justify-between mb-4">
         <span className="text-xs text-gray-400">{card.topicName}</span>
-        <span className="text-xs text-gray-400">{progress}</span>
+        <span className="text-xs text-gray-400">
+          {progress} · {batchInfo}
+        </span>
       </div>
 
       {/* Card */}

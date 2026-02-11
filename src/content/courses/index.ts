@@ -24,6 +24,14 @@ export const courses: CourseDefinition[] = [
     prefix: "operating-systems-and-computer-networking",
   },
   {
+    slug: "artificial-intelligence",
+    title: "Artificial Intelligence",
+    description:
+      "Foundational concepts of AI and machine learning, including rational agents, supervised and unsupervised learning, deep learning, and the ML pipeline.",
+    instructors: ["Ferran Espuny-Pujol"],
+    prefix: "artificial-intelligence",
+  },
+  {
     slug: "personal",
     title: "Personal",
     description: "Personal notes and flashcards.",

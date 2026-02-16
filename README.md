@@ -3,7 +3,7 @@
 A minimal, clean lecture-note portal built with Next.js, TypeScript, and Tailwind CSS. PDFs are served from Cloudflare R2 with automatic Vercel-hosted fallback.
 
 ## Architecture
-
+'
 ```
 src/
 ├── app/                          # Next.js App Router pages & API routes
